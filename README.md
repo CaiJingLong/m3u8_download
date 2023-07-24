@@ -18,6 +18,13 @@ cd m3u8_download
 dart pub global activate -s path .
 ```
 
+Or, download from [release](https://github.com/CaiJingLong/m3u8_download/releases)
+
+```sh
+# after download
+chmod +x m3u8
+```
+
 ## Usage
 
 ### pub global
