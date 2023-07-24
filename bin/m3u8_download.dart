@@ -11,6 +11,17 @@ import 'package:http/http.dart';
 late String supportedProtocol;
 late bool removeTemp;
 late int threads;
+late bool verbose;
+
+void _verbose(Object? object) {
+  if (verbose) {
+    _log(object);
+  }
+}
+
+void _log(Object? object) {
+  print(object);
+}
 
 Future<void> main(List<String> args) async {
   final runner = M3u8CommandRunner(
@@ -248,7 +259,7 @@ class DownloadManager {
 
     final file = File(outputPath);
     if (file.existsSync()) {
-      print('Skip download: $uri');
+      _log('Skip download: $uri');
     } else {
       final request = Request('GET', uri);
       final response = await _httpClient.send(request);
@@ -267,7 +278,7 @@ class DownloadManager {
     finishTask++;
     final progress = finishTask / totalCount;
     final progressText = (progress * 100).toStringAsFixed(2);
-    print('Downloaded: $uri, download progress: $progressText%');
+    _log('Downloaded: $uri, download progress: $progressText%');
   }
 }
 
@@ -332,28 +343,28 @@ Future<void> mergeTs(
   final result = await Process.start('sh', ['-c', ffmpegCmd]);
 
   result.stdout.transform(utf8.decoder).listen((event) {
-    print(event);
+    _log(event);
   });
 
   result.stderr.transform(utf8.decoder).listen((event) {
-    print(event);
+    _verbose(event);
   });
 
   final exitCode = await result.exitCode;
-  print('exitCode: $exitCode');
+  _log('exitCode: $exitCode');
 
   if (exitCode == 0) {
-    print('Merge success');
+    _log('Merge success');
 
     if (removeTemp) {
       final dir = Directory(outputPath);
       await dir.delete(recursive: true);
-      print('Remove temp path: $outputPath');
+      _log('Remove temp path: $outputPath');
     }
 
-    print('Output: $outputMediaPath');
+    _log('Output: $outputMediaPath');
   } else {
-    print('Merge failed');
+    _log('Merge failed');
   }
 }
 
@@ -375,6 +386,12 @@ class M3u8CommandRunner extends CommandRunner<void> {
       help: 'download threads',
     )
     ..addFlag(
+      'verbose',
+      abbr: 'v',
+      defaultsTo: false,
+      help: 'show verbose log',
+    )
+    ..addFlag(
       'remove-temp',
       abbr: 'r',
       defaultsTo: true,
@@ -393,20 +410,22 @@ class M3u8CommandRunner extends CommandRunner<void> {
     final result = topLevelResults;
 
     if (result['help'] as bool) {
-      print(usage);
+      _log(usage);
       return;
     }
+
+    verbose = result['verbose'] as bool;
 
     final url = result['url'] as String?;
     var outputPath = result['output'] as String?;
 
     if (url == null) {
-      print('url is null, exit');
+      _log('url is null, exit');
       return;
     }
 
     if (!url.startsWith('http')) {
-      print('url is not start with http, exit');
+      _log('url is not start with http, exit');
       return;
     }
 
@@ -420,7 +439,7 @@ class M3u8CommandRunner extends CommandRunner<void> {
     // check ffmpeg installed
     final ffmpegResult = await Process.start('bash', ['-c', 'ffmpeg -version']);
     if (await ffmpegResult.exitCode != 0) {
-      print('ffmpeg not installed, exit');
+      _log('ffmpeg not installed, exit');
       return;
     }
 
@@ -432,16 +451,16 @@ class M3u8CommandRunner extends CommandRunner<void> {
 
     final outputMediaPath = '$outputPath.mp4';
 
-    print('Prepared to download: $url');
-    print('Output outputMediaFile: $outputMediaPath');
-    print('Output temp path: $outputPath');
+    _log('Prepared to download: $url');
+    _log('Output outputMediaFile: $outputMediaPath');
+    _log('Output temp path: $outputPath');
 
     final m3u8 = await M3u8.from(url);
 
     // print('m3u8: $m3u8');
-    print('total ts count: ${m3u8.tsList.length}');
+    _log('total ts count: ${m3u8.tsList.length}');
     if (m3u8.key != null) {
-      print('key: ${m3u8.key}');
+      _verbose('key: ${m3u8.key}');
     }
 
     await downloadM3u8(m3u8, outputPath, outputMediaPath);
