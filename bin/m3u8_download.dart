@@ -1,0 +1,452 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:args/args.dart';
+import 'package:args/command_runner.dart';
+import 'package:dext/dext.dart';
+import 'package:http/http.dart';
+
+late String supportedProtocol;
+late bool removeTemp;
+late int threads;
+
+Future<void> main(List<String> args) async {
+  final runner = M3u8CommandRunner(
+    'm3u8_download',
+    'Download m3u8 and merge to mp4',
+  );
+
+  await runner.run(args);
+}
+
+class TS {
+  final String metaText;
+  final String srcUrl;
+  final String url;
+
+  TS(this.metaText, this.srcUrl, this.url);
+
+  Uri get wholeUri => Uri.parse(srcUrl).resolve(url);
+
+  @override
+  String toString() {
+    return wholeUri.toString();
+  }
+}
+
+class Key {
+  final String text;
+  final String srcUrl;
+
+  Key(
+    this.srcUrl,
+    this.text,
+  );
+
+  late Uint8List _keyContent;
+  late String method;
+  String? iv;
+
+  Future<void> init() async {
+    // #EXT-X-KEY:METHOD=AES-128,URI="key.key"
+    // #EXT-X-KEY:METHOD=AES-128,URI=key.key
+    // #EXT-X-KEY:METHOD=AES-128,URI="enc.key",IV=0x00000000000000000000000000000000
+
+    final text = this.text.removePrefix('#EXT-X-KEY:');
+
+    final params = text.split(',').map((e) {
+      final kv = e.split('=');
+      return MapEntry(kv[0], kv[1]);
+    }).toMap();
+
+    method = params['METHOD']!;
+    final keyUrl = params['URI']!.removePrefix('"').removeSuffix('"');
+    final wholeUrl = Uri.parse(srcUrl).resolve(keyUrl).toString();
+    _keyContent = await _httpClient.readBytes(Uri.parse(wholeUrl));
+
+    iv = params['IV'];
+  }
+
+  @override
+  String toString() {
+    return text;
+  }
+
+  Future<File> download(String path) async {
+    final file = File(path);
+    await init();
+    file.writeAsBytesSync(_keyContent);
+
+    return file;
+  }
+
+  String getText(File keyFile) {
+    final sb = StringBuffer();
+
+    sb.write('#EXT-X-KEY:METHOD=$method,URI="${keyFile.absolute.uri}"');
+
+    if (iv != null) {
+      sb.write(',IV=$iv');
+    }
+
+    return sb.toString();
+  }
+
+  String resolveMetaText() {
+    // replace URI to whole https url
+    final regex = RegExp(r'URI="(.*)"');
+    final uri = regex.firstMatch(text)!.group(1)!;
+    final wholeUrl = Uri.parse(srcUrl).resolve(uri).toString();
+    final newText = text.replaceFirst(regex, 'URI="$wholeUrl"');
+    return newText;
+  }
+}
+
+final _httpClient = Client();
+
+class M3u8 {
+  final List<TS> tsList;
+  final Key? key;
+  final String srcUrl;
+
+  M3u8({
+    required this.tsList,
+    required this.srcUrl,
+    this.key,
+  });
+
+  static Future<M3u8> from(String url) async {
+    final Request request = Request('GET', Uri.parse(url));
+    request.followRedirects = false;
+    final response = await _httpClient.send(request);
+
+    if (response.isRedirect) {
+      final location = response.headers['location'];
+      return from(location!);
+    }
+
+    final body = await response.stream.bytesToString();
+
+    return parse(url, body);
+  }
+
+  static Future<M3u8> parse(String httpUrl, String body) async {
+    // 获取文件列表
+    final lines = body.split('\n');
+
+    final tsList = <TS>[];
+    Key? key;
+
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+
+      if (line.endsWith('.ts')) {
+        final metaText = lines[i - 1].trim();
+        tsList.add(TS(metaText, httpUrl, line));
+      } else if (line.endsWith('.m3u8')) {
+        final url = line;
+        final wholeUrl = Uri.parse(httpUrl).resolve(url).toString();
+        final m3u8 = await M3u8.from(wholeUrl);
+        tsList.addAll(m3u8.tsList);
+        key ??= m3u8.key;
+      }
+
+      if (line.startsWith('#EXT-X-KEY:')) {
+        key = Key(httpUrl, line);
+      }
+    }
+
+    return M3u8(srcUrl: httpUrl, tsList: tsList, key: key);
+  }
+
+  @override
+  String toString() {
+    final tsText = tsList.join('\n');
+    return tsText;
+  }
+}
+
+String getNotRepeatPath(String outputPath) {
+  final realPath = '$outputPath.mp4';
+
+  final file = File(realPath);
+
+  if (!file.existsSync()) {
+    return outputPath;
+  }
+
+  var index = 2;
+  while (true) {
+    final newOutputPath = '$outputPath-$index';
+    final dir = '$newOutputPath.mp4';
+    final file = File(dir);
+    if (file.existsSync()) {
+      index++;
+    } else {
+      return newOutputPath;
+    }
+  }
+}
+
+class DownloadTask {
+  final Uri uri;
+  final String outputPath;
+
+  DownloadTask(this.uri, this.outputPath);
+}
+
+typedef VoidCallback = void Function();
+
+class DownloadManager {
+  final List<DownloadTask> _tasks = [];
+
+  void addTask(DownloadTask task) {
+    _tasks.add(task);
+  }
+
+  var runningCount = 0;
+
+  var totalCount = 0;
+
+  var finishTask = 0;
+
+  Future<void> start() async {
+    final Completer<void> result = Completer();
+    totalCount = _tasks.length;
+    Timer.periodic(Duration(milliseconds: 50), (timer) {
+      download(() {
+        timer.cancel();
+        result.complete();
+      });
+    });
+
+    return result.future;
+  }
+
+  Future<void> download([VoidCallback? onDownloadFinish]) async {
+    if (finishTask == totalCount) {
+      onDownloadFinish?.call();
+      return;
+    }
+    if (_tasks.isNotEmpty) {
+      while (runningCount < threads) {
+        runningCount++;
+        if (_tasks.isEmpty) {
+          break;
+        }
+        final task = _tasks.removeAt(0);
+        downloadFile(task);
+      }
+    }
+  }
+
+  Future<void> downloadFile(DownloadTask task) async {
+    final uri = task.uri;
+    final outputPath = task.outputPath;
+
+    final file = File(outputPath);
+    if (file.existsSync()) {
+      print('Skip download: $uri');
+    } else {
+      final request = Request('GET', uri);
+      final response = await _httpClient.send(request);
+
+      await file.create(recursive: true);
+      final sink = file.openWrite();
+
+      await response.stream.pipe(sink);
+
+      await sink.flush();
+      await sink.close();
+    }
+
+    _tasks.remove(task);
+    runningCount--;
+    finishTask++;
+    final progress = finishTask / totalCount;
+    final progressText = (progress * 100).toStringAsFixed(2);
+    print('Downloaded: $uri, download progress: $progressText%');
+  }
+}
+
+Future<void> downloadM3u8(
+  M3u8 m3u8,
+  String outputPath,
+  String outputMediaPath,
+) async {
+  final manager = DownloadManager();
+  for (var i = 0; i < m3u8.tsList.length; i++) {
+    final ts = m3u8.tsList[i];
+
+    final uri = ts.wholeUri;
+    final tmpName = '$outputPath/$i.ts';
+
+    manager.addTask(DownloadTask(uri, tmpName));
+  }
+
+  await manager.start();
+}
+
+Future<void> mergeTs(
+  M3u8 m3u8,
+  String outputPath,
+  String outputMediaPath,
+) async {
+  final m3u8FilePath = '$outputPath/index.m3u8';
+
+  final m3u8Buffer = StringBuffer();
+
+  // write header
+  m3u8Buffer.writeln('#EXTM3U');
+  m3u8Buffer.writeln('#EXT-X-VERSION:3');
+  m3u8Buffer.writeln('#EXT-X-MEDIA-SEQUENCE:0');
+
+  // write key
+  final key = m3u8.key;
+  if (key != null) {
+    m3u8Buffer.writeln(key.resolveMetaText());
+  }
+
+  // write ts
+  for (var i = 0; i < m3u8.tsList.length; i++) {
+    final ts = m3u8.tsList[i];
+    final tsName = '$i.ts';
+    m3u8Buffer.writeln(ts.metaText);
+    m3u8Buffer.writeln(tsName);
+  }
+
+  // write end
+  m3u8Buffer.writeln('#EXT-X-ENDLIST');
+
+  // write m3u8 file
+  final m3u8File = File(m3u8FilePath);
+  await m3u8File.create(recursive: true);
+  await m3u8File.writeAsString(m3u8Buffer.toString());
+
+  String ffmpegCmd =
+      'ffmpeg -protocol_whitelist "$supportedProtocol" -i $m3u8FilePath -c copy $outputMediaPath';
+
+  // run cmd
+  final result = await Process.start('sh', ['-c', ffmpegCmd]);
+
+  result.stdout.transform(utf8.decoder).listen((event) {
+    print(event);
+  });
+
+  result.stderr.transform(utf8.decoder).listen((event) {
+    print(event);
+  });
+
+  final exitCode = await result.exitCode;
+  print('exitCode: $exitCode');
+
+  if (exitCode == 0) {
+    print('Merge success');
+
+    if (removeTemp) {
+      final dir = Directory(outputPath);
+      await dir.delete(recursive: true);
+      print('Remove temp path: $outputPath');
+    }
+
+    print('Output: $outputMediaPath');
+  } else {
+    print('Merge failed');
+  }
+}
+
+class M3u8CommandRunner extends CommandRunner<void> {
+  @override
+  ArgParser argParser = ArgParser()
+    ..addOption('url', abbr: 'u', help: 'm3u8 url')
+    ..addOption('output', abbr: 'o', help: 'output file name (not have ext)')
+    ..addOption(
+      'protocol',
+      abbr: 'p',
+      defaultsTo: 'file,crypto,data,http,tcp,https,tls',
+      help: 'supported protocol (for ffmpeg merge)',
+    )
+    ..addOption(
+      'threads',
+      abbr: 't',
+      defaultsTo: '20',
+      help: 'download threads',
+    )
+    ..addFlag(
+      'remove-temp',
+      abbr: 'r',
+      defaultsTo: true,
+      help: 'remove temp file after merge',
+    );
+
+  M3u8CommandRunner(String executableName, String description)
+      : super(executableName, description);
+
+  @override
+  String get usage => '${super.usage}\n\n'
+      'Example: m3u8 -u http://example.com/index.m3u8 -o download';
+
+  @override
+  Future<void> runCommand(ArgResults topLevelResults) async {
+    final result = topLevelResults;
+
+    if (result['help'] as bool) {
+      print(usage);
+      return;
+    }
+
+    final url = result['url'] as String?;
+    var outputPath = result['output'] as String?;
+
+    if (url == null) {
+      print('url is null, exit');
+      return;
+    }
+
+    if (!url.startsWith('http')) {
+      print('url is not start with http, exit');
+      return;
+    }
+
+    threads = int.parse(result['threads'] as String);
+
+    final protocol = result['protocol'] as String?;
+    if (protocol != null) {
+      supportedProtocol = protocol;
+    }
+
+    // check ffmpeg installed
+    final ffmpegResult = await Process.start('bash', ['-c', 'ffmpeg -version']);
+    if (await ffmpegResult.exitCode != 0) {
+      print('ffmpeg not installed, exit');
+      return;
+    }
+
+    removeTemp = result['remove-temp'] as bool;
+
+    outputPath ??= 'download';
+
+    outputPath = getNotRepeatPath(outputPath);
+
+    final outputMediaPath = '$outputPath.mp4';
+
+    print('Prepared to download: $url');
+    print('Output outputMediaFile: $outputMediaPath');
+    print('Output temp path: $outputPath');
+
+    final m3u8 = await M3u8.from(url);
+
+    // print('m3u8: $m3u8');
+    print('total ts count: ${m3u8.tsList.length}');
+    if (m3u8.key != null) {
+      print('key: ${m3u8.key}');
+    }
+
+    await downloadM3u8(m3u8, outputPath, outputMediaPath);
+    await mergeTs(m3u8, outputPath, outputMediaPath);
+
+    _httpClient.close();
+  }
+}
