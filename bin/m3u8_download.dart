@@ -23,13 +23,45 @@ void _log(Object? object) {
   print(object);
 }
 
+class _RunStopWatch {
+  int? total;
+  int? prepare;
+  int? download;
+  int? merge;
+  int? clean;
+
+  void _showTime(String tag, int? time) {
+    if (time != null) {
+      final duration = Duration(milliseconds: time);
+      _log('The $tag time: $duration');
+    }
+  }
+
+  void logTime() {
+    _log('\nThe runtime:');
+    _showTime('prepare', prepare);
+    _showTime('download', download);
+    _showTime('merge', merge);
+    _showTime('clean', clean);
+    _showTime('total', total);
+  }
+}
+
+final _runtime = _RunStopWatch();
+
 Future<void> main(List<String> args) async {
+  final stopwatch = Stopwatch();
+  stopwatch.start();
   final runner = M3u8CommandRunner(
     'm3u8_download',
     'Download m3u8 and merge to mp4',
   );
 
   await runner.run(args);
+  stopwatch.stop();
+  _runtime.total = stopwatch.elapsedMilliseconds;
+
+  _runtime.logTime();
 }
 
 class TS {
@@ -407,6 +439,8 @@ class M3u8CommandRunner extends CommandRunner<void> {
 
   @override
   Future<void> runCommand(ArgResults topLevelResults) async {
+    final stopwatch = Stopwatch();
+    stopwatch.start();
     final result = topLevelResults;
 
     if (result['help'] as bool) {
@@ -463,8 +497,19 @@ class M3u8CommandRunner extends CommandRunner<void> {
       _verbose('key: ${m3u8.key}');
     }
 
+    stopwatch.stop();
+    _runtime.prepare = stopwatch.elapsedMilliseconds;
+    stopwatch.reset();
+    stopwatch.start();
+
     await downloadM3u8(m3u8, outputPath, outputMediaPath);
+    stopwatch.stop();
+    _runtime.download = stopwatch.elapsedMilliseconds;
+    stopwatch.reset();
+    stopwatch.start();
     await mergeTs(m3u8, outputPath, outputMediaPath);
+    _runtime.merge = stopwatch.elapsedMilliseconds;
+    stopwatch.stop();
 
     _httpClient.close();
   }
