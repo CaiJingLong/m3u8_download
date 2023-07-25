@@ -255,7 +255,11 @@ class DownloadManager {
 
   var finishTask = 0;
 
+  var totalDownloadedBytes = 0;
+  final stopwatch = Stopwatch();
+
   Future<void> start() async {
+    stopwatch.start();
     final Completer<void> result = Completer();
     totalCount = _tasks.length;
     Timer.periodic(Duration(milliseconds: 50), (timer) {
@@ -285,6 +289,22 @@ class DownloadManager {
     }
   }
 
+  String formatSpeed() {
+    var downloadSpeed =
+        totalDownloadedBytes / stopwatch.elapsed.inMilliseconds * 1000;
+
+    final unit = ['bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
+
+    var index = 0;
+
+    while (downloadSpeed > 1024) {
+      downloadSpeed /= 1024;
+      index++;
+    }
+    final unitText = unit[index];
+    return '${downloadSpeed.toStringAsFixed(2)} $unitText/s';
+  }
+
   Future<void> downloadFile(DownloadTask task) async {
     final uri = task.uri;
     final outputPath = task.outputPath;
@@ -298,9 +318,10 @@ class DownloadManager {
 
       await file.create(recursive: true);
       final sink = file.openWrite();
+      final bytes = await response.stream.toBytes();
+      totalDownloadedBytes += bytes.length;
 
-      await response.stream.pipe(sink);
-
+      sink.add(bytes);
       await sink.flush();
       await sink.close();
     }
@@ -308,9 +329,12 @@ class DownloadManager {
     _tasks.remove(task);
     runningCount--;
     finishTask++;
+
     final progress = finishTask / totalCount;
     final progressText = (progress * 100).toStringAsFixed(2);
-    _log('Downloaded: $uri, download progress: $progressText%');
+    final downloadSpeedText = formatSpeed();
+    _log('Downloaded: $uri, download progress: $progressText%,'
+        ' $downloadSpeedText');
   }
 }
 
@@ -378,8 +402,39 @@ Future<void> mergeTs(
     _log(event);
   });
 
+  final totalTsLength = m3u8.tsList.length;
+
+  var time = 0;
+  void showMergeProgress(String event) {
+    time++;
+
+    if (time % 20 != 0) {
+      return;
+    }
+
+    // Example: Opening 'crypto:download/1.ts' for reading
+    final regex = RegExp('Opening \'(.*)\' for reading');
+    final match = regex.firstMatch(event);
+    if (match != null) {
+      final nameInfo = match.group(1)!;
+
+      if (!nameInfo.endsWith('.ts')) {
+        return;
+      }
+
+      final tsName = nameInfo.split('/').last;
+      final noExtName = tsName.split('.').first;
+
+      final index = noExtName.toInt();
+      final mergeProgress = index / totalTsLength;
+      final progressText = (mergeProgress * 100).toStringAsFixed(2);
+      _log('Merge progress: $progressText%');
+    }
+  }
+
   result.stderr.transform(utf8.decoder).listen((event) {
     _verbose(event);
+    showMergeProgress(event);
   });
 
   final exitCode = await result.exitCode;
@@ -411,6 +466,7 @@ class M3u8CommandRunner extends CommandRunner<void> {
       defaultsTo: 'file,crypto,data,http,tcp,https,tls',
       help: 'supported protocol (for ffmpeg merge)',
     )
+    ..addOption('ext', help: 'output file ext.', defaultsTo: 'mp4')
     ..addOption(
       'threads',
       abbr: 't',
@@ -477,13 +533,15 @@ class M3u8CommandRunner extends CommandRunner<void> {
       return;
     }
 
+    final ext = result['ext'] as String? ?? 'mp4';
+
     removeTemp = result['remove-temp'] as bool;
 
     outputPath ??= 'download';
 
     outputPath = getNotRepeatPath(outputPath);
 
-    final outputMediaPath = '$outputPath.mp4';
+    final outputMediaPath = '$outputPath.$ext';
 
     _log('Prepared to download: $url');
     _log('Output outputMediaFile: $outputMediaPath');

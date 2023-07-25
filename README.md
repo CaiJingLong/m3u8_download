@@ -52,8 +52,11 @@ Global options:
 -o, --output              output file name (not have ext)
 -p, --protocol            supported protocol (for ffmpeg merge)
                           (defaults to "file,crypto,data,http,tcp,https,tls")
+    --ext                 output file ext.
+                          (defaults to "mp4")
 -t, --threads             download threads
                           (defaults to "20")
+-v, --[no-]verbose        show verbose log
 -r, --[no-]remove-temp    remove temp file after merge
                           (defaults to on)
 -h, --help                Print this usage information.
