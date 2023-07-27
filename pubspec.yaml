@@ -1,10 +1,10 @@
 name: m3u8_download
 description: A m3u8 download, support linux, mac, dependency on ffmpeg.
-version: 1.1.0
+version: 1.1.1
 repository: https://github.com/CaiJingLong/m3u8_download
 
 environment:
-  sdk: ^3.0.6
+  sdk: ">=2.12.0 <4.0.0"
 
 # Add regular dependencies here.
 dependencies:

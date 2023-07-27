@@ -2,6 +2,8 @@
 
 - Fix: issue with spaces in `output`.
 
+- Downgrade dart constraint  to `>=2.12.0 <4.0.0`.
+
 ## 1.1.0
 
 - Change log and add verbose option.
