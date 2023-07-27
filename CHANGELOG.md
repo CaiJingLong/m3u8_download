@@ -1,3 +1,7 @@
+## 1.2.0
+
+- Split a single file into multiple files.
+
 ## 1.1.1
 
 - Fix: issue with spaces in `output`.
