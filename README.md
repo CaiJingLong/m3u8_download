@@ -1,5 +1,15 @@
 # m3u8_download
 
+## Why have this project
+
+I want to download some video, but use `ffmpeg -i xxx -c copy xxx.mp4` is too slow.
+
+Because it seems that there is a limited speed for single-threaded downloads,
+the overall speed is very slow, and online playback will freeze,
+but multi-threaded downloads will not be very slow. So I wrote this tool,
+which can parse m3u8 and download ts files in multiple threads,
+and do the "merging" work locally to speed up.
+
 ## require
 
 The executable is available for Linux and macOS.
