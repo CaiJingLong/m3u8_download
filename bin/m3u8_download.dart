@@ -539,6 +539,7 @@ class M3u8CommandRunner extends CommandRunner<void> {
 
     outputPath ??= 'download';
 
+    outputPath = outputPath.replaceAll(' ', '-');
     outputPath = getNotRepeatPath(outputPath);
 
     final outputMediaPath = '$outputPath.$ext';
