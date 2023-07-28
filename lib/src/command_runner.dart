@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
+import 'package:m3u8_download/src/shell.dart';
 
 import 'config.dart';
 import 'entities.dart';
@@ -70,7 +71,6 @@ class M3u8CommandRunner extends CommandRunner<void> {
   String get usage => '${super.usage}\n\n'
       'Example: m3u8 -u http://example.com/index.m3u8 -o download';
 
-
   @override
   Future<void> runCommand(ArgResults topLevelResults) async {
     final stopwatch = Stopwatch();
@@ -105,8 +105,8 @@ class M3u8CommandRunner extends CommandRunner<void> {
     }
 
     // check ffmpeg installed
-    final ffmpegResult = await Process.start('bash', ['-c', 'ffmpeg -version']);
-    if (await ffmpegResult.exitCode != 0) {
+    final ffmpegResult = await isProgramInstalled('ffmpeg');
+    if (!ffmpegResult) {
       logger.log('ffmpeg not installed, exit');
       return;
     }

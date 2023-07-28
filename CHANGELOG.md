@@ -1,3 +1,7 @@
+## 1.3.0
+
+- Support windows.
+
 ## 1.2.0
 
 - Split a single file into multiple files.

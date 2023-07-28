@@ -13,7 +13,7 @@ jobs:
   upload:
     strategy:
       matrix:
-        os: [macos, ubuntu]
+        os: [windows, macos, ubuntu]
     runs-on: ${{ matrix.os }}-latest
     name: Upload ${{ matrix.os }} binaries to release ${{ github.event.release.tag_name }}
     steps:
@@ -36,6 +36,6 @@ jobs:
           export TARGET_GZ=${{ matrix.os }}_${{ github.event.release.tag_name }}.tar.gz
           tar -czvf $TARGET_GZ bin/*.exe
           gh release upload ${{ github.event.release.tag_name }} $TARGET_GZ
-
+          
 permissions:
   contents: write
