@@ -36,3 +36,6 @@ jobs:
           export TARGET_GZ=${{ matrix.os }}_${{ github.event.release.tag_name }}.tar.gz
           tar -czvf $TARGET_GZ bin/*.exe
           gh release upload ${{ github.event.release.tag_name }} $TARGET_GZ
+
+permissions:
+  contents: write
