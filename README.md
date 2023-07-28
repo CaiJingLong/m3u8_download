@@ -12,7 +12,7 @@ and do the "merging" work locally to speed up.
 
 ## require
 
-The executable is available for Linux and macOS.
+The executable is available for Windows, Linux and macOS.
 
 And, you need to install [ffmpeg](https://ffmpeg.org/) first.
 
