@@ -1,3 +1,7 @@
+## 1.3.2
+
+- Fix bug: the executor in windows can use in cmd and powershell.
+
 ## 1.3.1
 
 - Fix bug: remove test code in bin.
