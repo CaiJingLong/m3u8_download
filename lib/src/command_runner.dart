@@ -36,15 +36,29 @@ class M3u8CommandRunner extends CommandRunner<void> {
 
   @override
   ArgParser argParser = ArgParser()
-    ..addOption('url', abbr: 'u', help: 'm3u8 url')
-    ..addOption('output', abbr: 'o', help: 'output file name (not have ext)')
+    ..addOption(
+      'url',
+      abbr: 'u',
+      help: 'm3u8 url',
+    )
+    ..addOption(
+      'output',
+      abbr: 'o',
+      help: 'output file name (not have ext)',
+      defaultsTo: 'download/video',
+    )
     ..addOption(
       'protocol',
       abbr: 'p',
       defaultsTo: 'file,crypto,data,http,tcp,https,tls',
       help: 'supported protocol (for ffmpeg merge)',
     )
-    ..addOption('ext', help: 'output file ext.', defaultsTo: 'mp4')
+    ..addOption(
+      'ext',
+      abbr: 'e',
+      help: 'output file ext.',
+      defaultsTo: 'mp4',
+    )
     ..addOption(
       'threads',
       abbr: 't',

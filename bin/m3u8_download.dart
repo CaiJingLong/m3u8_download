@@ -4,7 +4,7 @@ import 'package:m3u8_download/src/command_runner.dart';
 import 'package:m3u8_download/src/stopwatch.dart';
 
 Future<void> main(List<String> args) async {
-  args = ['--url', 'http://10.147.17.71:3000/index.m3u8'];
+  // args = ['--url', 'http://10.147.17.71:3000/index.m3u8'];
 
   final stopwatch = Stopwatch();
   stopwatch.start();

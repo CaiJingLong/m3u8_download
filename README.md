@@ -53,16 +53,17 @@ dart bin/m3u8_download.dart -u xxx
 
 ```sh
 $ m3u8 -h
-Download m3u8 and merge to mp4
+Download m3u8 and merge to video(mp4)
 
 Usage: m3u8_download <command> [arguments]
 
 Global options:
 -u, --url                 m3u8 url
 -o, --output              output file name (not have ext)
+                          (defaults to "download/video")
 -p, --protocol            supported protocol (for ffmpeg merge)
                           (defaults to "file,crypto,data,http,tcp,https,tls")
-    --ext                 output file ext.
+-e, --ext                 output file ext.
                           (defaults to "mp4")
 -t, --threads             download threads
                           (defaults to "20")
