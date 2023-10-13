@@ -80,12 +80,17 @@ class Key {
   }
 
   String resolveMetaText() {
-    // replace URI to whole https url
     final regex = RegExp(r'URI="(.*)"');
-    final uri = regex.firstMatch(text)!.group(1)!;
-    final wholeUrl = Uri.parse(srcUrl).resolve(uri).toString();
-    final newText = text.replaceFirst(regex, 'URI="$wholeUrl"');
-    return newText;
+    if (regex.hasMatch(text)) {
+      // replace URI to whole https url
+      final uri = regex.firstMatch(text)!.group(1)!;
+      final wholeUrl = Uri.parse(srcUrl).resolve(uri).toString();
+      final newText = text.replaceFirst(regex, 'URI="$wholeUrl"');
+      return newText;
+    } else {
+      // If URI can't be found, return original text.
+      return text;
+    }
   }
 }
 
