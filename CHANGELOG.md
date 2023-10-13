@@ -1,3 +1,7 @@
+## 1.3.4
+
+- fix: replace some characters that cannot be used in file names.
+
 ## 1.3.3
 
 - fix: An error will be reported if the key in the m3u8 file does not contain a 'URI'.

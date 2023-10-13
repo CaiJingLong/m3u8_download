@@ -99,7 +99,7 @@ class M3u8CommandRunner extends CommandRunner<void> {
     Config.verbose = result['verbose'] as bool;
 
     final url = result['url'] as String?;
-    var outputPath = result['output'] as String?;
+    var outputPath = (result['output'] as String?) ?? 'download';
 
     if (url == null) {
       logger.log('url is null, exit');
@@ -129,9 +129,21 @@ class M3u8CommandRunner extends CommandRunner<void> {
 
     Config.removeTemp = result['remove-temp'] as bool;
 
-    outputPath ??= 'download';
+    const outputNameMapping = {
+      ' ': '-',
+      '&': '-',
+      '?': '-',
+      '=': '-',
+      '%': '-',
+      '\$': '-',
+      '@': '-',
+    };
+    for (final kv in outputNameMapping.entries) {
+      final key = kv.key;
+      final value = kv.value;
+      outputPath = outputPath.replaceAll(key, value);
+    }
 
-    outputPath = outputPath.replaceAll(' ', '-');
     outputPath = getNotRepeatPath(outputPath);
 
     final outputMediaPath = '$outputPath.$ext';
