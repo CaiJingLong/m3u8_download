@@ -128,7 +128,6 @@ class M3u8CommandRunner extends CommandRunner<void> {
     final ext = result['ext'] as String? ?? 'mp4';
 
     Config.removeTemp = result['remove-temp'] as bool;
-
     const outputNameMapping = {
       ' ': '-',
       '&': '-',
@@ -146,34 +145,52 @@ class M3u8CommandRunner extends CommandRunner<void> {
 
     outputPath = getNotRepeatPath(outputPath);
 
-    final outputMediaPath = '$outputPath.$ext';
+    try {
+      final outputMediaPath = '$outputPath.$ext';
 
-    logger.log('Prepared to download: $url');
-    logger.log('Output outputMediaFile: $outputMediaPath');
-    logger.log('Output temp path: $outputPath');
+      logger.log('Prepared to download: $url');
+      logger.log('Output outputMediaFile: $outputMediaPath');
+      logger.log('Output temp path: $outputPath');
 
-    final m3u8 = await M3u8.from(url);
+      final m3u8 = await M3u8.from(url);
 
-    // print('m3u8: $m3u8');
-    logger.log('total ts count: ${m3u8.tsList.length}');
-    if (m3u8.key != null) {
-      logger.verbose('key: ${m3u8.key}');
+      // print('m3u8: $m3u8');
+      logger.log('total ts count: ${m3u8.tsList.length}');
+      if (m3u8.key != null) {
+        logger.verbose('key: ${m3u8.key}');
+      }
+
+      stopwatch.stop();
+      runtimeOverwatch.prepare = stopwatch.elapsedMilliseconds;
+      stopwatch.reset();
+      stopwatch.start();
+
+      await downloadM3u8(m3u8, outputPath, outputMediaPath);
+      stopwatch.stop();
+      runtimeOverwatch.download = stopwatch.elapsedMilliseconds;
+      stopwatch.reset();
+      stopwatch.start();
+      await mergeTs(m3u8, outputPath, outputMediaPath);
+      runtimeOverwatch.merge = stopwatch.elapsedMilliseconds;
+      stopwatch.stop();
+
+      httpClient.close();
+    } finally {
+      //
+      clear(outputPath);
+    }
+  }
+
+  void clear(String outputPath) {
+    final dir = Directory(outputPath);
+    if (!dir.existsSync()) {
+      return;
     }
 
-    stopwatch.stop();
-    runtimeOverwatch.prepare = stopwatch.elapsedMilliseconds;
-    stopwatch.reset();
-    stopwatch.start();
-
-    await downloadM3u8(m3u8, outputPath, outputMediaPath);
-    stopwatch.stop();
-    runtimeOverwatch.download = stopwatch.elapsedMilliseconds;
-    stopwatch.reset();
-    stopwatch.start();
-    await mergeTs(m3u8, outputPath, outputMediaPath);
-    runtimeOverwatch.merge = stopwatch.elapsedMilliseconds;
-    stopwatch.stop();
-
-    httpClient.close();
+    final list = dir.listSync();
+    if (list.isEmpty) {
+      // If the dir is empty, delete dir
+      dir.deleteSync();
+    }
   }
 }

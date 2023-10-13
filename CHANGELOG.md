@@ -1,3 +1,7 @@
+## 1.3.5
+
+- fix: If temp dir is empty, remove it.
+
 ## 1.3.4
 
 - fix: replace some characters that cannot be used in file names.
