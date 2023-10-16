@@ -1,3 +1,7 @@
+## 1.4.0
+
+- Add `--version` flag.
+
 ## 1.3.5
 
 - fix: If temp dir is empty, remove it.

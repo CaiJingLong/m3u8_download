@@ -10,6 +10,7 @@ import 'http.dart';
 import 'logger.dart';
 import 'merger.dart';
 import 'stopwatch.dart';
+import 'versions.dart';
 
 class M3u8CommandRunner extends CommandRunner<void> {
   String getNotRepeatPath(String outputPath) {
@@ -66,6 +67,11 @@ class M3u8CommandRunner extends CommandRunner<void> {
       help: 'download threads',
     )
     ..addFlag(
+      'version',
+      defaultsTo: false,
+      help: 'show version',
+    )
+    ..addFlag(
       'verbose',
       abbr: 'v',
       defaultsTo: false,
@@ -93,6 +99,11 @@ class M3u8CommandRunner extends CommandRunner<void> {
 
     if (result['help'] as bool) {
       logger.log(usage);
+      return;
+    }
+
+    if (result['version'] as bool) {
+      logger.log('version: ${Versions.version}');
       return;
     }
 
