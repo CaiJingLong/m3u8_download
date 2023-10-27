@@ -1,3 +1,7 @@
+## 1.4.1
+
+- Fix: solve the problem of multiple rows of keys in the m3u8 file.
+
 ## 1.4.0
 
 - Add `--version` flag.

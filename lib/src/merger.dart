@@ -15,34 +15,12 @@ Future<void> mergeTs(
 ) async {
   final m3u8FilePath = '$outputPath/index.m3u8';
 
-  final m3u8Buffer = StringBuffer();
-
-  // write header
-  m3u8Buffer.writeln('#EXTM3U');
-  m3u8Buffer.writeln('#EXT-X-VERSION:3');
-  m3u8Buffer.writeln('#EXT-X-MEDIA-SEQUENCE:0');
-
-  // write key
-  final key = m3u8.key;
-  if (key != null) {
-    m3u8Buffer.writeln(key.resolveMetaText());
-  }
-
-  // write ts
-  for (var i = 0; i < m3u8.tsList.length; i++) {
-    final ts = m3u8.tsList[i];
-    final tsName = '$i.ts';
-    m3u8Buffer.writeln(ts.metaText);
-    m3u8Buffer.writeln(tsName);
-  }
-
-  // write end
-  m3u8Buffer.writeln('#EXT-X-ENDLIST');
+  final content = await m3u8.getLocalM3u8Content(m3u8, outputPath);
 
   // write m3u8 file
   final m3u8File = File(m3u8FilePath);
   await m3u8File.create(recursive: true);
-  await m3u8File.writeAsString(m3u8Buffer.toString());
+  await m3u8File.writeAsString(content);
 
   if (!m3u8File.existsSync()) {
     throw Exception('Create m3u8 file failed, download stop.');
@@ -50,6 +28,8 @@ Future<void> mergeTs(
 
   String ffmpegCmd =
       'ffmpeg -protocol_whitelist ${Config.supportedProtocol} -i $m3u8FilePath -c copy $outputMediaPath';
+
+  logger.log('ffmpegCmd: $ffmpegCmd');
 
   // run cmd
   Process result;
@@ -138,4 +118,14 @@ Future<void> downloadM3u8(
   }
 
   await manager.start();
+}
+
+Future<void> downloadKey(
+  M3u8 m3u8,
+  String outputPath,
+) async {
+  final key = m3u8.key;
+  if (key != null) {
+    await key.download(outputPath);
+  }
 }

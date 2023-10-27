@@ -11,7 +11,7 @@ class DownloadTask {
   final Uri uri;
   final String outputPath;
 
-  DownloadTask(this.uri, this.outputPath);
+  const DownloadTask(this.uri, this.outputPath);
 }
 
 typedef VoidCallback = void Function();

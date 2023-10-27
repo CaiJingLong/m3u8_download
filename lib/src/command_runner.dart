@@ -163,12 +163,14 @@ class M3u8CommandRunner extends CommandRunner<void> {
       logger.log('Output outputMediaFile: $outputMediaPath');
       logger.log('Output temp path: $outputPath');
 
-      final m3u8 = await M3u8.from(url);
+      final m3u8 = await M3u8.from(url, outputPath);
 
       // print('m3u8: $m3u8');
       logger.log('total ts count: ${m3u8.tsList.length}');
       if (m3u8.key != null) {
-        logger.verbose('key: ${m3u8.key}');
+        // logger.verbose('key: ${m3u8.key}');
+        logger.verbose('m3u8 key: ${m3u8.key?.text}');
+        logger.verbose('m3u8 key: ${m3u8.key?.resolveMetaText()}');
       }
 
       stopwatch.stop();
