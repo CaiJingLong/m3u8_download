@@ -1,3 +1,7 @@
+## 1.4.2
+
+- Fix version problem.
+
 ## 1.4.1
 
 - Fix: solve the problem of multiple rows of keys in the m3u8 file.
