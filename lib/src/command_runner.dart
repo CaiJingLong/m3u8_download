@@ -68,8 +68,15 @@ class M3u8CommandRunner extends CommandRunner<void> {
     )
     ..addFlag(
       'version',
+      abbr: 'V',
       defaultsTo: false,
       help: 'show version',
+    )
+    ..addFlag(
+      'isolate',
+      abbr: 'i',
+      defaultsTo: false,
+      help: 'use isolate download',
     )
     ..addFlag(
       'verbose',
@@ -108,6 +115,7 @@ class M3u8CommandRunner extends CommandRunner<void> {
     }
 
     Config.verbose = result['verbose'] as bool;
+    Config.useIsolate = result['isolate'] as bool;
 
     final url = result['url'] as String?;
     var outputPath = (result['output'] as String?) ?? 'download';

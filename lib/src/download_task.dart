@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:http/http.dart';
 
@@ -81,24 +82,8 @@ class DownloadManager {
 
   Future<void> downloadFile(DownloadTask task) async {
     final uri = task.uri;
-    final outputPath = task.outputPath;
-
-    final file = File(outputPath);
-    if (file.existsSync()) {
-      logger.log('Skip download: $uri');
-    } else {
-      final request = Request('GET', uri);
-      final response = await httpClient.send(request);
-
-      await file.create(recursive: true);
-      final sink = file.openWrite();
-      final bytes = await response.stream.toBytes();
-      totalDownloadedBytes += bytes.length;
-
-      sink.add(bytes);
-      await sink.flush();
-      await sink.close();
-    }
+    final downloadBytes = await _download(task);
+    totalDownloadedBytes += downloadBytes;
 
     _tasks.remove(task);
     runningCount--;
@@ -109,5 +94,36 @@ class DownloadManager {
     final downloadSpeedText = formatSpeed();
     logger.log('Downloaded: $uri, download progress: $progressText%,'
         ' $downloadSpeedText');
+  }
+
+  Future<int> _download(DownloadTask task) {
+    if (Config.useIsolate) {
+      return Isolate.run(() => _downloadFile(task));
+    } else {
+      return _downloadFile(task);
+    }
+  }
+
+  Future<int> _downloadFile(DownloadTask task) async {
+    final uri = task.uri;
+    final outputPath = task.outputPath;
+
+    final file = File(outputPath);
+    if (file.existsSync()) {
+      logger.log('Skip download: $uri');
+      return 0;
+    } else {
+      final request = Request('GET', uri);
+      final response = await httpClient.send(request);
+
+      await file.create(recursive: true);
+      final sink = file.openWrite();
+      final bytes = await response.stream.toBytes();
+      sink.add(bytes);
+      await sink.flush();
+      await sink.close();
+
+      return bytes.length;
+    }
   }
 }

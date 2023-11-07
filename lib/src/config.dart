@@ -3,4 +3,5 @@ class Config {
   static bool removeTemp = true;
   static int threads = 20;
   static bool verbose = false;
+  static bool useIsolate = false;
 }

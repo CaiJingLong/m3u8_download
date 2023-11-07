@@ -1,3 +1,7 @@
+## 1.5.0
+
+- Add `-i` to open `isolate` mode to download files.
+
 ## 1.4.2
 
 - Fix version problem.
