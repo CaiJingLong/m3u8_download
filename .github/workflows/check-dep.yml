@@ -1,0 +1,42 @@
+name: Upgrade version
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  upgrade-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Install dependencies
+        run: dart pub get
+      - name: Upgrade version
+        run: dart run scripts/upgrade_version.dart
+      - name: Check have change
+        id: check-commit
+        run: |
+          git_status=$(git status --porcelain)
+          if [ -n "$git_status" ]; then
+            echo "There are uncommitted changes."
+            echo "::set-output name=has_changes::true"  # Set has_changes output to true
+          else
+            echo "No uncommitted changes."
+            echo "::set-output name=has_changes::false"  # Set has_changes output to false
+          fi
+      - name: Setup gh to push commit
+        if: steps.check-commit.outputs.has_changes == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh auth login --with-token <<< "${GITHUB_TOKEN}"
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "chore: upgrade version" --signoff
+          git push
