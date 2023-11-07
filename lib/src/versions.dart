@@ -1,3 +1,3 @@
 class Versions {
-  static String version = '1.4.2';
+  static String version = '1.5.0';
 }
