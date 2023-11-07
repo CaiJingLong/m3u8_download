@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions: 
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v3
       - name: Setup dart
@@ -37,7 +39,6 @@ jobs:
             echo "No uncommitted changes."
             exit 0
           fi
-          echo ${{secrets.PERSON_TOKEN}} | gh auth login --with-token --hostname github.com -p https
           gh auth setup-git -h github.com
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
