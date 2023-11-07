@@ -24,16 +24,19 @@ jobs:
           git_status=$(git status --porcelain)
           if [ -n "$git_status" ]; then
             echo "There are uncommitted changes."
-            echo "::set-output name=has_changes::true"  # Set has_changes output to true
+            echo "HAS_CHANGES=true" >> $GITHUB_ENV  # Set has_changes output to true
           else
             echo "No uncommitted changes."
-            echo "::set-output name=has_changes::false"  # Set has_changes output to false
+            echo "HAS_CHANGES=false" >> $GITHUB_ENV  # Set has_changes output to false
           fi
       - name: Setup gh to push commit
-        if: steps.check-commit.outputs.has_changes == 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          if [ $HAS_CHANGES = "false" ]; then
+            echo "No uncommitted changes."
+            exit 0
+          fi
           gh auth login --with-token <<< "${GITHUB_TOKEN}"
           git config --global user.name 'github-actions[bot]'
           git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
