@@ -1,3 +1,7 @@
+## 1.5.1
+
+- Update download progress log.
+
 ## 1.5.0
 
 - Add `-i` to open `isolate` mode to download files.

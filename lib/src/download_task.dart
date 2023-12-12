@@ -81,7 +81,6 @@ class DownloadManager {
   }
 
   Future<void> downloadFile(DownloadTask task) async {
-    final uri = task.uri;
     final downloadBytes = await _download(task);
     totalDownloadedBytes += downloadBytes;
 
@@ -92,8 +91,9 @@ class DownloadManager {
     final progress = finishTask / totalCount;
     final progressText = (progress * 100).toStringAsFixed(2);
     final downloadSpeedText = formatSpeed();
-    logger.log('Downloaded: $uri, download progress: $progressText%,'
-        ' $downloadSpeedText');
+    // logger.log('Downloaded: $uri, download progress: $progressText%,'
+    //     ' $downloadSpeedText');
+    logger.write('\rDownload progress: $progressText%, $downloadSpeedText');
   }
 
   Future<int> _download(DownloadTask task) {

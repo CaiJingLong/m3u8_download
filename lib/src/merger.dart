@@ -51,14 +51,7 @@ Future<void> mergeTs(
 
   final totalTsLength = m3u8.tsList.length;
 
-  var time = 0;
   void showMergeProgress(String event) {
-    time++;
-
-    if (time % 20 != 0) {
-      return;
-    }
-
     // Example: Opening 'crypto:download/1.ts' for reading
     final regex = RegExp('Opening \'(.*)\' for reading');
     final match = regex.firstMatch(event);
@@ -75,7 +68,7 @@ Future<void> mergeTs(
       final index = noExtName.toInt();
       final mergeProgress = index / totalTsLength;
       final progressText = (mergeProgress * 100).toStringAsFixed(2);
-      logger.log('Merge progress: $progressText%');
+      logger.log('\rMerge progress: $progressText%');
     }
   }
 
