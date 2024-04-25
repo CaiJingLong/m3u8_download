@@ -68,7 +68,7 @@ Future<void> mergeTs(
       final index = noExtName.toInt();
       final mergeProgress = index / totalTsLength;
       final progressText = (mergeProgress * 100).toStringAsFixed(2);
-      logger.log('\rMerge progress: $progressText%');
+      logger.write('\rMerge progress: $progressText%');
     }
   }
 
@@ -78,6 +78,7 @@ Future<void> mergeTs(
   });
 
   final exitCode = await result.exitCode;
+  logger.write('\n');
   logger.log('exitCode: $exitCode');
 
   if (exitCode == 0) {

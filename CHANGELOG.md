@@ -1,3 +1,7 @@
+## 1.6.1
+
+- Change merge log format.
+
 ## 1.6.0
 
 - Add retry count for download.
