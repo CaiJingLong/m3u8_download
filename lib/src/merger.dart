@@ -7,6 +7,7 @@ import 'config.dart';
 import 'download_task.dart';
 import 'entities.dart';
 import 'logger.dart';
+import 'util/string_util.dart';
 
 Future<void> mergeTs(
   M3u8 m3u8,
@@ -90,7 +91,11 @@ Future<void> mergeTs(
       logger.log('Remove temp path: $outputPath');
     }
 
-    logger.log('Output: $outputMediaPath');
+    final fileSize = File(outputMediaPath).lengthSync();
+
+    final sizeText = StringUtils.formatSize(fileSize);
+
+    logger.log('Output: $outputMediaPath ($sizeText)');
   } else {
     logger.log('Merge failed');
   }

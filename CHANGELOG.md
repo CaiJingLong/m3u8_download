@@ -1,3 +1,7 @@
+## 1.6.2
+
+- Output file size will be displayed in the log when the download is complete.
+
 ## 1.6.1
 
 - Change merge log format.
