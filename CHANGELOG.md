@@ -1,3 +1,8 @@
+## 1.6.0
+
+- Add retry count for download.
+- If download file error, the outputFile will be deleted.
+
 ## 1.5.1
 
 - Update download progress log.

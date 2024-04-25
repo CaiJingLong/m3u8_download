@@ -66,6 +66,12 @@ class M3u8CommandRunner extends CommandRunner<void> {
       defaultsTo: '20',
       help: 'download threads',
     )
+    ..addOption(
+      'retry-count',
+      abbr: 'c',
+      defaultsTo: '5',
+      help: 'retry count of each ts file',
+    )
     ..addFlag(
       'version',
       abbr: 'V',
@@ -116,6 +122,7 @@ class M3u8CommandRunner extends CommandRunner<void> {
 
     Config.verbose = result['verbose'] as bool;
     Config.useIsolate = result['isolate'] as bool;
+    Config.retryCount = int.parse(result['retry-count'] as String);
 
     final url = result['url'] as String?;
     var outputPath = (result['output'] as String?) ?? 'download';

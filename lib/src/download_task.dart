@@ -91,8 +91,6 @@ class DownloadManager {
     final progress = finishTask / totalCount;
     final progressText = (progress * 100).toStringAsFixed(2);
     final downloadSpeedText = formatSpeed();
-    // logger.log('Downloaded: $uri, download progress: $progressText%,'
-    //     ' $downloadSpeedText');
     logger.write('\rDownload progress: $progressText%, $downloadSpeedText');
   }
 
@@ -112,18 +110,31 @@ class DownloadManager {
     if (file.existsSync()) {
       logger.log('Skip download: $uri');
       return 0;
-    } else {
-      final request = Request('GET', uri);
-      final response = await httpClient.send(request);
-
-      await file.create(recursive: true);
-      final sink = file.openWrite();
-      final bytes = await response.stream.toBytes();
-      sink.add(bytes);
-      await sink.flush();
-      await sink.close();
-
-      return bytes.length;
     }
+
+    var retryCount = 0;
+    while (retryCount < Config.retryCount) {
+      try {
+        final request = Request('GET', uri);
+        final response = await httpClient.send(request);
+
+        await file.create(recursive: true);
+        final sink = file.openWrite();
+        final bytes = await response.stream.toBytes();
+        sink.add(bytes);
+        await sink.flush();
+        await sink.close();
+
+        return bytes.length;
+      } catch (e) {
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+        logger.log('Download failed: $uri, retry: $retryCount');
+        retryCount++;
+      }
+    }
+
+    throw Exception('Download failed: $uri');
   }
 }

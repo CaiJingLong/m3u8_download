@@ -4,4 +4,5 @@ class Config {
   static int threads = 20;
   static bool verbose = false;
   static bool useIsolate = false;
+  static int retryCount = 5;
 }
