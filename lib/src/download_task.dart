@@ -105,9 +105,11 @@ class DownloadManager {
   Future<int> _downloadFile(DownloadTask task) async {
     final uri = task.uri;
     final outputPath = task.outputPath;
+    final tmpOutputPath = '$outputPath.tmp';
+    final tsFilePath = File(outputPath);
 
-    final file = File(outputPath);
-    if (file.existsSync()) {
+    final tmpFile = File(tmpOutputPath);
+    if (tsFilePath.existsSync()) {
       logger.log('Skip download: $uri');
       return 0;
     }
@@ -118,17 +120,21 @@ class DownloadManager {
         final request = Request('GET', uri);
         final response = await httpClient.send(request);
 
-        await file.create(recursive: true);
-        final sink = file.openWrite();
+        await tmpFile.create(recursive: true);
+        final sink = tmpFile.openWrite();
         final bytes = await response.stream.toBytes();
         sink.add(bytes);
         await sink.flush();
         await sink.close();
 
+        if (tmpFile.existsSync()) {
+          tmpFile.renameSync(outputPath);
+        }
+
         return bytes.length;
       } catch (e) {
-        if (file.existsSync()) {
-          file.deleteSync();
+        if (tmpFile.existsSync()) {
+          tmpFile.deleteSync();
         }
         logger.log('Download failed: $uri, retry: $retryCount');
         retryCount++;

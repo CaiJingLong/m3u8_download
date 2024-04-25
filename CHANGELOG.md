@@ -1,6 +1,7 @@
 ## 1.6.1
 
 - Change merge log format.
+- Use tmp file before download finish.
 
 ## 1.6.0
 
