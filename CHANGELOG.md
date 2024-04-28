@@ -1,3 +1,7 @@
+## 1.6.4
+
+- Fix remaining time calculation.
+
 ## 1.6.3
 
 - Add remaining time to download progress log.

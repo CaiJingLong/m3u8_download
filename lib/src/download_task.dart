@@ -33,8 +33,6 @@ class DownloadManager {
   var totalDownloadedBytes = 0;
   final stopwatch = Stopwatch();
 
-  var guestTotalBytes = -1;
-
   Future<void> start() async {
     stopwatch.start();
     final Completer<void> result = Completer();
@@ -66,9 +64,12 @@ class DownloadManager {
     }
   }
 
+  double _getDownloadSpeed() {
+    return totalDownloadedBytes / stopwatch.elapsed.inMilliseconds * 1000;
+  }
+
   String formatSpeed() {
-    var downloadSpeed =
-        totalDownloadedBytes / stopwatch.elapsed.inMilliseconds * 1000;
+    var downloadSpeed = _getDownloadSpeed();
 
     final unit = ['bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
 
@@ -82,15 +83,18 @@ class DownloadManager {
     return '${downloadSpeed.toStringAsFixed(2)} $unitText/s';
   }
 
+  int _guessTotalBytes() {
+    // guest current download speed
+
+    // 1. avg file size
+    final avgFileSize = totalDownloadedBytes ~/ finishTask;
+
+    // 2. guest total bytes
+    return avgFileSize * totalCount;
+  }
+
   Future<void> downloadFile(DownloadTask task) async {
     final downloadBytes = await _download(task);
-
-    if (guestTotalBytes == -1) {
-      guestTotalBytes = downloadBytes * totalCount;
-    }
-
-    totalDownloadedBytes += downloadBytes;
-
     _tasks.remove(task);
     runningCount--;
     finishTask++;
@@ -99,16 +103,18 @@ class DownloadManager {
     final progressText = (progress * 100).toStringAsFixed(2);
     final downloadSpeedText = formatSpeed();
 
-    var remainingTimeSeconds = 0;
+    var remainingTimeMilliseconds = 0.0;
+    totalDownloadedBytes += downloadBytes;
+    final guestTotalBytes = _guessTotalBytes();
     if (guestTotalBytes > 0) {
       final remainingBytes = guestTotalBytes - totalDownloadedBytes;
-      remainingTimeSeconds =
-          (remainingBytes / totalDownloadedBytes * stopwatch.elapsed.inSeconds)
-              .toInt();
+      // guest remaining time
+      final downloadSpeed = _getDownloadSpeed();
+      remainingTimeMilliseconds = remainingBytes / downloadSpeed;
     }
 
     logger.write('\rDownload progress: $progressText%, $downloadSpeedText, '
-        'remaining time: $remainingTimeSeconds seconds');
+        'remaining time: ${remainingTimeMilliseconds.toStringAsFixed(2)}');
   }
 
   Future<int> _download(DownloadTask task) {
@@ -128,7 +134,7 @@ class DownloadManager {
     final tmpFile = File(tmpOutputPath);
     if (tsFilePath.existsSync()) {
       logger.log('Skip download: $uri');
-      return 0;
+      return tsFilePath.lengthSync();
     }
 
     var retryCount = 0;
