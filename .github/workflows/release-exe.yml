@@ -30,14 +30,10 @@ jobs:
         run: |
           dart pub get
           dart analyze
-          export DART_BINS=$(ls bin/*.dart)
-          for dart_file in $DART_BINS; do
-              echo "Compiling $dart_file"
-              dart compile exe $dart_file
-          done
-          chmod +x bin/*.exe
+          dart compile exe bin/m3u8_download.dart -o m3u8
+          chmod +x m3u8
           export TARGET_GZ=${{ matrix.os }}_${{ github.event.release.tag_name }}.tar.gz
-          tar -czvf $TARGET_GZ bin/*.exe
+          tar -czvf $TARGET_GZ m3u8
           gh release upload ${{ github.event.release.tag_name }} $TARGET_GZ
           
 permissions:
