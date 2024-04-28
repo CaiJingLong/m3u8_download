@@ -1,3 +1,7 @@
+## 1.6.3
+
+- Add remaining time to download progress log.
+
 ## 1.6.2
 
 - Output file size will be displayed in the log when the download is complete.

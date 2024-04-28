@@ -33,6 +33,8 @@ class DownloadManager {
   var totalDownloadedBytes = 0;
   final stopwatch = Stopwatch();
 
+  var guestTotalBytes = -1;
+
   Future<void> start() async {
     stopwatch.start();
     final Completer<void> result = Completer();
@@ -82,6 +84,11 @@ class DownloadManager {
 
   Future<void> downloadFile(DownloadTask task) async {
     final downloadBytes = await _download(task);
+
+    if (guestTotalBytes == -1) {
+      guestTotalBytes = downloadBytes * totalCount;
+    }
+
     totalDownloadedBytes += downloadBytes;
 
     _tasks.remove(task);
@@ -91,7 +98,17 @@ class DownloadManager {
     final progress = finishTask / totalCount;
     final progressText = (progress * 100).toStringAsFixed(2);
     final downloadSpeedText = formatSpeed();
-    logger.write('\rDownload progress: $progressText%, $downloadSpeedText');
+
+    var remainingTimeSeconds = 0;
+    if (guestTotalBytes > 0) {
+      final remainingBytes = guestTotalBytes - totalDownloadedBytes;
+      remainingTimeSeconds =
+          (remainingBytes / totalDownloadedBytes * stopwatch.elapsed.inSeconds)
+              .toInt();
+    }
+
+    logger.write('\rDownload progress: $progressText%, $downloadSpeedText, '
+        'remaining time: $remainingTimeSeconds seconds');
   }
 
   Future<int> _download(DownloadTask task) {
