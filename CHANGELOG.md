@@ -1,3 +1,7 @@
+## 1.6.5
+
+- Change log for ffmpeg merge cmd.
+
 ## 1.6.4
 
 - Fix remaining time calculation.

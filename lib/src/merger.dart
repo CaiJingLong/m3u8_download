@@ -30,6 +30,8 @@ Future<void> mergeTs(
   String ffmpegCmd =
       'ffmpeg -protocol_whitelist ${Config.supportedProtocol} -i $m3u8FilePath -c copy $outputMediaPath';
 
+  logger.log('\n');
+  logger.log('Start merge ts files');
   logger.log('ffmpegCmd: $ffmpegCmd');
 
   // run cmd
