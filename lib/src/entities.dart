@@ -132,14 +132,18 @@ class M3u8 {
 
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
+      if (line.isEmpty) {
+        continue;
+      }
+      final lineUri = Uri.parse(httpUrl).resolve(line);
 
       if (line.endsWith('.ts')) {
         final metaText = lines[i - 1].trim();
         tsList.add(TS(metaText, httpUrl, line));
-      } else if (line.endsWith('.m3u8')) {
-        final url = line;
-        final wholeUrl = Uri.parse(httpUrl).resolve(url).toString();
-        final m3u8 = await M3u8.from(wholeUrl, outputPath, m3u8List: m3u8List);
+      } else if (line.startsWith('#')) {
+      } else if (lineUri.path.endsWith('.m3u8')) {
+        final url = lineUri.toString();
+        final m3u8 = await M3u8.from(url, outputPath, m3u8List: m3u8List);
         tsList.addAll(m3u8.tsList);
         key ??= m3u8.key;
       }

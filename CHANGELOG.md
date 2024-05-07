@@ -1,3 +1,8 @@
+## 1.6.6
+
+- Fix: the m3u8 in m3u8 support http params.
+- Fix: support empty line in m3u8 file.
+
 ## 1.6.5
 
 - Change log for ffmpeg merge cmd.
