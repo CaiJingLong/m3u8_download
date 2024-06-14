@@ -28,7 +28,7 @@ Future<void> mergeTs(
   }
 
   String ffmpegCmd =
-      'ffmpeg -protocol_whitelist ${Config.supportedProtocol} -i $m3u8FilePath -c copy $outputMediaPath';
+      'ffmpeg -allowed_extensions ALL -protocol_whitelist ${Config.supportedProtocol} -i $m3u8FilePath -c copy $outputMediaPath';
 
   logger.log('\n');
   logger.log('Start merge ts files');
@@ -77,7 +77,10 @@ Future<void> mergeTs(
 
   result.stderr.transform(utf8.decoder).listen((event) {
     logger.verbose(event);
-    showMergeProgress(event);
+    try {
+      showMergeProgress(event);
+      // ignore: empty_catches, unused_catch_clause
+    } on Exception catch (e) {}
   });
 
   final exitCode = await result.exitCode;

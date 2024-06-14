@@ -192,7 +192,12 @@ class M3u8 {
 
           if (uri != null) {
             final wholeUrl = srcUri.resolve(uri.group(1)!).toString();
-            final newText = line.replaceFirst(regex, 'URI="$wholeUrl"');
+
+            /// download key and return local path
+            final keyFile = await downloadFile(wholeUrl, outputPath, 'key.key');
+
+            final newText =
+                line.replaceFirst(regex, 'URI="${keyFile.absolute.uri}"');
             sb.writeln(newText);
           } else {
             sb.writeln(line);

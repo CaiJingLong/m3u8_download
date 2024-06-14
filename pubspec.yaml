@@ -1,6 +1,6 @@
 name: m3u8_download
 description: A m3u8 download, support linux, mac and windows, dependency on ffmpeg.
-version: 1.6.6
+version: 1.7.0
 repository: https://github.com/CaiJingLong/m3u8_download
 
 environment:

@@ -48,6 +48,18 @@ Future<String> getBody(String url, String outputPath) async {
   return body;
 }
 
+Future<File> downloadFile(
+  String url,
+  String outputPath,
+  String fileName,
+) async {
+  final file = File(join(outputPath, fileName));
+  final response = await httpClient.get(Uri.parse(url));
+  await file.writeAsBytes(response.bodyBytes);
+
+  return file;
+}
+
 void clearCache(String outputPath) {
   final configFile = File(join(outputPath, 'cache.json'));
   if (configFile.existsSync()) {

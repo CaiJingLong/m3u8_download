@@ -1,3 +1,7 @@
+## 1.7.0
+
+- Feat: replace remote key with local key in m3u8 file.
+
 ## 1.6.6
 
 - Fix: the m3u8 in m3u8 support http params.
