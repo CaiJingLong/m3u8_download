@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dext/dext.dart';
+import 'package:m3u8_download/src/logger.dart';
 
 import 'http.dart';
 
@@ -191,13 +192,15 @@ class M3u8 {
           final uri = regex.firstMatch(line);
 
           if (uri != null) {
-            final wholeUrl = srcUri.resolve(uri.group(1)!).toString();
+            final keyUrl = srcUri.resolve(uri.group(1)!).toString();
 
             /// download key and return local path
-            final keyFile = await downloadFile(wholeUrl, outputPath, 'key.key');
+            final keyFile = await downloadFile(keyUrl, outputPath, 'key.key');
+            final keyFilePath = keyFile.absolute.path;
+            logger.log('download key.key from $keyUrl to $keyFilePath');
 
-            final newText =
-                line.replaceFirst(regex, 'URI="${keyFile.absolute.uri}"');
+            final newText = line.replaceFirst(regex, 'URI="key.key"');
+            // final newText = line.replaceFirst(regex, 'URI="${keyFilePath.toUri()}"');
             sb.writeln(newText);
           } else {
             sb.writeln(line);

@@ -1,3 +1,7 @@
+## 1.7.1
+
+- Fix: The local key use relative path to support not ascii path.
+
 ## 1.7.0
 
 - Feat: replace remote key with local key in m3u8 file.

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import re
 import sys
 
@@ -15,3 +16,8 @@ if not re.match(regex, ver):
     print('Invalid version format. Use "vX.X.X"')
 
 cmd = f"gh release create {ver} --generate-notes "
+
+print(f"Creating release {ver}...")
+os.system(cmd)
+
+print("Done!")
