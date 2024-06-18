@@ -2,13 +2,19 @@
 
 import os
 import re
-import sys
 
-if len(sys.argv) < 2:
-    print("Usage: release.py <version>")
-    sys.exit(1)
 
-ver = sys.argv[1]
+def read_version():
+    with open("pubspec.yaml", "r") as f:
+        lines = f.readlines()
+        for line in lines:
+            if "version" in line:
+                return line.split(":")[1].strip()
+
+
+version = read_version()
+
+ver = "v" + version
 
 regex = r"v\d+\.\d+\.\d+"
 
