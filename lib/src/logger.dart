@@ -21,6 +21,10 @@ class M3u8Logger {
     }
     stdout.write(message);
   }
+
+  void error(String message) {
+    stderr.writeln(message);
+  }
 }
 
 final logger = M3u8Logger();

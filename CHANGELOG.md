@@ -1,3 +1,7 @@
+## 1.7.2
+
+- Fix: When the download ts file is not successful, exit the program directly.
+
 ## 1.7.1
 
 - Fix: The local key use relative path to support not ascii path.

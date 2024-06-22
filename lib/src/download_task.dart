@@ -95,6 +95,10 @@ class DownloadManager {
 
   Future<void> downloadFile(DownloadTask task) async {
     final downloadBytes = await _download(task);
+    if (downloadBytes == -1) {
+      throw Exception('Download failed: ${task.uri}, exit.');
+    }
+
     _tasks.remove(task);
     runningCount--;
     finishTask++;
@@ -142,6 +146,22 @@ class DownloadManager {
       try {
         final request = Request('GET', uri);
         final response = await httpClient.send(request);
+
+        if (response.statusCode != 200) {
+          logger.error(
+            'Download failed: $uri, status code: ${response.statusCode}',
+          );
+          final headers = response.headers.entries
+              .map((e) => "${e.key}: ${e.value}")
+              .join('\n');
+          logger.error(
+            'Response headers: $headers',
+          );
+          logger.error(
+            'Response body: ${await response.stream.bytesToString()}',
+          );
+          return -1;
+        }
 
         await tmpFile.create(recursive: true);
         final sink = tmpFile.openWrite();
