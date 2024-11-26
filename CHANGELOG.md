@@ -1,3 +1,7 @@
+## 1.8.0
+
+- Feat: support segment ext.
+
 ## 1.7.2
 
 - Fix: When the download ts file is not successful, exit the program directly.
