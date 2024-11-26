@@ -61,6 +61,13 @@ class M3u8CommandRunner extends CommandRunner<void> {
       defaultsTo: 'mp4',
     )
     ..addOption(
+      'segment-ext',
+      abbr: 's',
+      help:
+          'segment file ext. Some m3u8 file contains jpg ext, but it is ts video file.',
+      defaultsTo: 'ts',
+    )
+    ..addOption(
       'threads',
       abbr: 't',
       defaultsTo: '20',
@@ -152,6 +159,7 @@ class M3u8CommandRunner extends CommandRunner<void> {
     }
 
     final ext = result['ext'] as String? ?? 'mp4';
+    final segmentExt = result['segment-ext'] as String? ?? 'ts';
 
     Config.removeTemp = result['remove-temp'] as bool;
     const outputNameMapping = {
@@ -178,10 +186,30 @@ class M3u8CommandRunner extends CommandRunner<void> {
       logger.log('Output outputMediaFile: $outputMediaPath');
       logger.log('Output temp path: $outputPath');
 
-      final m3u8 = await M3u8.from(url, outputPath);
+      var m3u8 = await M3u8.from(url, outputPath, ext: '.$segmentExt');
 
       // print('m3u8: $m3u8');
       logger.log('total ts count: ${m3u8.tsList.length}');
+
+      while (m3u8.tsList.isEmpty) {
+        logger.log(
+            'no ts file, can you want to use other ext? (y or other exit)');
+        final input = stdin.readLineSync();
+        if (input == 'y') {
+          final content = await m3u8.getLocalM3u8Content(m3u8, outputPath);
+          logger.log('local m3u8 content: $content');
+        } else {
+          logger.log('exit');
+          return;
+        }
+
+        logger.log('please input ext (default: .ts): ');
+        final readExt = stdin.readLineSync();
+        if (readExt != null) {
+          m3u8 = await M3u8.from(url, outputPath, ext: readExt);
+        }
+      }
+
       if (m3u8.key != null) {
         // logger.verbose('key: ${m3u8.key}');
         logger.verbose('m3u8 key: ${m3u8.key?.text}');

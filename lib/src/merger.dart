@@ -61,7 +61,7 @@ Future<void> mergeTs(
     if (match != null) {
       final nameInfo = match.group(1)!;
 
-      if (!nameInfo.endsWith('.ts')) {
+      if (!nameInfo.endsWith(m3u8.ext)) {
         return;
       }
 
@@ -116,9 +116,10 @@ Future<void> downloadM3u8(
     final ts = m3u8.tsList[i];
 
     final uri = ts.wholeUri;
-    final tmpName = '$outputPath/$i.ts';
+    final outputTsPath = '$outputPath/$i${m3u8.ext}';
+    ts.outputPath = outputTsPath;
 
-    manager.addTask(DownloadTask(uri, tmpName));
+    manager.addTask(DownloadTask(uri, outputTsPath));
   }
 
   await manager.start();

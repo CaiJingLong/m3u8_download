@@ -11,6 +11,8 @@ class TS {
   final String srcUrl;
   final String url;
 
+  String? outputPath;
+
   TS(this.metaText, this.srcUrl, this.url);
 
   Uri get wholeUri => Uri.parse(srcUrl).resolve(url);
@@ -99,23 +101,26 @@ class M3u8 {
   final Key? key;
   final String srcUrl;
   final List<String> m3u8List;
+  final String ext;
 
   M3u8({
     required this.tsList,
     required this.srcUrl,
     this.key,
     required this.m3u8List,
+    this.ext = '.ts',
   });
 
   static Future<M3u8> from(
     String url,
     String outputPath, {
     List<String>? m3u8List,
+    String ext = '.ts',
   }) async {
     m3u8List ??= [];
 
     final body = await getBody(url, outputPath);
-    return parse(url, body, outputPath, m3u8List: m3u8List);
+    return parse(url, body, outputPath, m3u8List: m3u8List, ext: ext);
   }
 
   static Future<M3u8> parse(
@@ -123,6 +128,7 @@ class M3u8 {
     String body,
     String outputPath, {
     required List<String> m3u8List,
+    String ext = '.ts',
   }) async {
     m3u8List.add(httpUrl);
     // 获取文件列表
@@ -138,13 +144,14 @@ class M3u8 {
       }
       final lineUri = Uri.parse(httpUrl).resolve(line);
 
-      if (line.endsWith('.ts')) {
+      if (line.endsWith(ext)) {
         final metaText = lines[i - 1].trim();
         tsList.add(TS(metaText, httpUrl, line));
       } else if (line.startsWith('#')) {
       } else if (lineUri.path.endsWith('.m3u8')) {
         final url = lineUri.toString();
-        final m3u8 = await M3u8.from(url, outputPath, m3u8List: m3u8List);
+        final m3u8 =
+            await M3u8.from(url, outputPath, m3u8List: m3u8List, ext: ext);
         tsList.addAll(m3u8.tsList);
         key ??= m3u8.key;
       }
@@ -159,6 +166,7 @@ class M3u8 {
       tsList: tsList,
       key: key,
       m3u8List: m3u8List,
+      ext: ext,
     );
   }
 
@@ -208,9 +216,9 @@ class M3u8 {
         } else {
           sb.writeln(line);
         }
-      } else if (line.trim().endsWith('.ts')) {
+      } else if (line.trim().endsWith(ext)) {
         // replace to local path
-        final tsName = '$i.ts';
+        final tsName = '$i$ext';
         i++;
         sb.writeln(tsName);
       } else {
