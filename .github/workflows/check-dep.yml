@@ -8,40 +8,51 @@ on:
 jobs:
   upgrade-version:
     runs-on: ubuntu-latest
-    permissions: 
-      contents: write
-    env:
-      GH_TOKEN: ${{ github.token }}
+    permissions:
+      contents: write  # 允许推送提交
+      id-token: write  # 启用OIDC身份验证
+    
     steps:
-      - uses: actions/checkout@v4
-      - name: Setup dart
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # 使用官方Token认证
+          fetch-depth: 0  # 获取完整提交历史
+
+      - name: Setup Dart
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
+
       - name: Install dependencies
         run: dart pub get
+
       - name: Upgrade version
         run: dart run scripts/upgrade_version.dart
-      - name: Check have change
-        id: check-commit
+
+      - name: Check for changes
+        id: check-changes
         run: |
-          git_status=$(git status --porcelain)
-          if [ -n "$git_status" ]; then
-            echo "There are uncommitted changes."
-            echo "HAS_CHANGES=true" >> $GITHUB_ENV  # Set has_changes output to true
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
           else
-            echo "No uncommitted changes."
-            echo "HAS_CHANGES=false" >> $GITHUB_ENV  # Set has_changes output to false
+            echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
-      - name: Setup gh to push commit
+
+      - name: Commit and push changes
+        if: steps.check-changes.outputs.has_changes == 'true'
+        env:
+          COMMITTER_NAME: github-actions[bot]
+          COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
-          if [ $HAS_CHANGES = "false" ]; then
-            echo "No uncommitted changes."
-            exit 0
-          fi
-          gh auth setup-git -h github.com
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .
-          git commit -m "chore: upgrade version" --signoff
-          git push
+          # 配置本地Git用户信息
+          git config --local user.name "$COMMITTER_NAME"
+          git config --local user.email "$COMMITTER_EMAIL"
+          
+          # 生成符合规范的提交信息
+          git add -u
+          git commit -m "chore: automated version upgrade" \
+            --author="$COMMITTER_NAME <$COMMITTER_EMAIL>"
+          
+          # 使用安全方式推送变更
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" HEAD:main
