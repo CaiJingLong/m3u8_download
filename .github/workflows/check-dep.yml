@@ -1,58 +1,64 @@
-name: Upgrade version
+name: Automated Version Upgrade
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  upgrade-version:
+  version-upgrade:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 允许推送提交
-      id-token: write  # 启用OIDC身份验证
-    
+      contents: write   # 允许推送提交
+      id-token: write   # 关键！启用OIDC身份验证
+
     steps:
+      # ================= 仓库初始化阶段 =================
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}  # 使用官方Token认证
-          fetch-depth: 0  # 获取完整提交历史
+          token: ${{ secrets.GITHUB_TOKEN }}  # 必须显式传递
+          persist-credentials: true          # 保持认证状态
+          fetch-depth: 0                     # 完整克隆用于版本比对
 
-      - name: Setup Dart
+      # ================= 环境配置阶段 =================
+      - name: Setup Dart SDK
         uses: dart-lang/setup-dart@v1
         with:
           sdk: stable
 
-      - name: Install dependencies
+      - name: Restore dependencies
         run: dart pub get
 
-      - name: Upgrade version
+      # ================= 核心逻辑阶段 =================
+      - name: Execute version upgrade
         run: dart run scripts/upgrade_version.dart
 
-      - name: Check for changes
-        id: check-changes
+      # ================= 变更检测阶段 =================
+      - name: Detect file changes
+        id: change-detector
         run: |
           if git diff --quiet; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "is_changed=false" >> $GITHUB_OUTPUT
           else
-            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "is_changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and push changes
-        if: steps.check-changes.outputs.has_changes == 'true'
+      # ================= 提交推送阶段 =================
+      - name: Commit & Push Changes
+        if: steps.change-detector.outputs.is_changed == 'true'
         env:
-          COMMITTER_NAME: github-actions[bot]
-          COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GH_BOT_ID: "41898282+github-actions[bot]@users.noreply.github.com"
         run: |
-          # 配置本地Git用户信息
-          git config --local user.name "$COMMITTER_NAME"
-          git config --local user.email "$COMMITTER_EMAIL"
-          
-          # 生成符合规范的提交信息
+          # 配置临时Git身份（不污染全局设置）
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "$GH_BOT_ID"
+
+          # 生成含工作流ID的提交信息
           git add -u
-          git commit -m "chore: automated version upgrade" \
-            --author="$COMMITTER_NAME <$COMMITTER_EMAIL>"
-          
-          # 使用安全方式推送变更
+          git commit -m "chore: auto-upgrade (workflow #${{ github.run_id }})"
+
+          # 安全推送（通过GitHub官方认证通道）
           git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" HEAD:main
+
+          # 调试日志（生产环境可移除）
+          echo "Commit SHA: $(git rev-parse HEAD)"
